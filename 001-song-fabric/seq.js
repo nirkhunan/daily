@@ -18,8 +18,9 @@ function rowsFor(key) {
     { kind: 'snare', label: 'Snare', group: 'drums' },
     { kind: 'hat', label: 'Hat', group: 'drums' },
     { kind: 'clap', label: 'Clap', group: 'drums' },
-    ...LEAD.map(o => ({ kind: 'lead', midi: leadRoot + o, label: '', group: 'lead' })),
-    ...BASS.map(o => ({ kind: 'bass', midi: bassRoot + o, label: '', group: 'bass' })),
+    // Numbered low to high, so the names stay true in any key.
+    ...LEAD.map((o, i) => ({ kind: 'lead', midi: leadRoot + o, label: `Lead ${LEAD.length - i}`, group: 'lead' })),
+    ...BASS.map((o, i) => ({ kind: 'bass', midi: bassRoot + o, label: `Bass ${BASS.length - i}`, group: 'bass' })),
   ];
 }
 

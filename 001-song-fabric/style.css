@@ -84,7 +84,7 @@ body {
 /* Sequencer */
 .grid {
   display: grid;
-  grid-template-columns: 44px repeat(16, minmax(0, 1fr));
+  grid-template-columns: 48px repeat(16, minmax(0, 1fr));
   grid-template-rows: repeat(4, minmax(0, 1fr)) 10px repeat(8, minmax(0, 1fr)) 10px repeat(4, minmax(0, 1fr));
   gap: 3px;
   width: 100%;
@@ -245,5 +245,3 @@ input[type=range] { width: 100%; accent-color: var(--ink); }
 .actions .span { grid-column: 1 / -1; }
 .actions button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
-/* Pitched rows have no names; a short dash still shows where to click to mute. */
-.lab:empty::before { content: ""; display: block; width: 10px; height: 2px; background: currentColor; }

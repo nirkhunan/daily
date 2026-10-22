@@ -2,7 +2,7 @@
 // C to B); drag up and down to open and close the filter. The dot stays where
 // you let go.
 
-import { KEYS } from './seq.js?v=16';
+import { KEYS } from './seq.js?v=19';
 
 export class Pad {
   constructor(el, onChange) {

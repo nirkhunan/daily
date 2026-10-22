@@ -1,7 +1,7 @@
 import { label, PALETTES } from './render.js?v=6';
 import { renderScore, STYLES, FIELD_STYLES } from './score.js?v=16';
-import { Sequencer, SOUNDS, PRESETS } from './seq.js?v=16';
-import { Pad } from './pad.js?v=16';
+import { Sequencer, SOUNDS, PRESETS } from './seq.js?v=19';
+import { Pad } from './pad.js?v=19';
 
 const W = 1200, H = 1200, EXPORT_SCALE = 2;   // square, the same shape as the grid
 

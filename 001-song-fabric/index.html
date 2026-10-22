@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Song Fabric</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=16">
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <div class="seqWrap"><div id="seq"></div><div id="pad" class="pad" title="Drag: across for key, up and down for filter"></div></div>
+      <div class="board"><canvas id="art"></canvas></div>
+    </section>
+
+    <aside class="panel">
+      <header>
+        <p class="kicker">Daily · 001</p>
+        <h1>Song Fabric</h1>
+        <p class="lede">Make a loop. Watch it weave.</p>
+      </header>
+
+      <div class="transport">
+        <div class="row">
+          <button id="seqPlay" class="primary">Play</button>
+          <button id="restart">Start over</button>
+        </div>
+        <p id="status" class="status"></p>
+      </div>
+
+      <section class="group">
+        <h2>Track name</h2>
+        <input id="trackName" class="text" type="text" value="Untitled Loop" maxlength="40">
+      </section>
+
+      <section class="group">
+        <h2>Start from</h2>
+        <div id="presets" class="chips"></div>
+      </section>
+
+      <section class="group">
+        <h2>Tempo <span id="tempoVal" class="val"></span></h2>
+        <input id="tempo" type="range" min="70" max="170" value="112">
+        <h2>Swing <span id="swingVal" class="val"></span></h2>
+        <input id="swing" type="range" min="0" max="60" value="0">
+        <h2>Filter</h2>
+        <input id="filter" type="range" min="0" max="100" value="100">
+      </section>
+
+      <section class="group">
+        <h2>Lead sound</h2>
+        <div id="sounds" class="seg three"></div>
+      </section>
+
+      <hr>
+
+      <section class="group">
+        <h2>Weave</h2>
+        <div id="modes" class="chips"></div>
+      </section>
+
+      <section class="group">
+        <h2>Colour <span id="paletteName" class="val"></span></h2>
+        <div id="swatches" class="swatches"></div>
+      </section>
+
+      <section class="group" id="shapeCtl" hidden>
+        <h2>Detail <span id="detailVal" class="val"></span></h2>
+        <input id="detail" type="range" min="4" max="24" value="12">
+        <h2>Smoothness <span id="smoothVal" class="val"></span></h2>
+        <input id="smooth" type="range" min="0" max="6" value="2">
+      </section>
+
+      <section class="group">
+        <h2>Legend</h2>
+        <ul class="legend">
+          <li><i class="k kick"></i>Kick</li>
+          <li><i class="k bass"></i>Bass</li>
+          <li><i class="k lead"></i>Lead</li>
+          <li><i class="k snare"></i>Snare</li>
+          <li><i class="k clap"></i>Clap</li>
+          <li><i class="k hat"></i>Hat</li>
+        </ul>
+      </section>
+
+      <label class="check"><input id="label" type="checkbox"> Garment label</label>
+
+      <section class="group">
+        <h2>Export</h2>
+        <div class="actions">
+          <button id="export">Image</button>
+          <button id="tile">Repeat tile</button>
+          <button id="clip">Record clip</button>
+          <button id="download">Track</button>
+          <button id="share" class="primary span">Copy link</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <script type="module" src="app.js?v=18"></script>
+</body>
+</html>

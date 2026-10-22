@@ -1,0 +1,249 @@
+:root {
+  --bg: #F6F5F2;
+  --surface: #FFFFFF;
+  --ink: #141414;
+  --muted: #6B6A66;
+  --line: #E2E0DA;
+  --font: "Instrument Sans", system-ui, sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+
+  /* The cloth's colourway, set from the palette; the grid wears it too. */
+  --c-bg: #EFEBE3;
+  --c-ink: #161616;
+  --c-mid: #FF5A1F;
+  --c-alt: #2340FF;
+}
+
+* { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 100vh;
+}
+
+/* Stage: the grid and the cloth, side by side */
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 32px;
+}
+
+/* The grid and the cloth are two equal squares, sized explicitly so no
+   browser can let one grow taller than the other. */
+:root { --tile: min(calc(100vh - 64px), calc((100vw - 340px - 64px - 40px) / 2)); }
+.seqWrap, .board {
+  flex: none;
+  position: relative;
+  width: var(--tile);
+  height: var(--tile);
+  overflow: hidden;
+}
+#seq { width: 100%; height: 100%; }
+.seqWrap { background: var(--c-bg); padding: 3.5%; display: flex; flex-direction: column; gap: 14px; }
+.seqWrap #seq { flex: 1; min-height: 0; height: auto; }
+
+/* Trackpad: across = key, up and down = filter */
+.pad {
+  flex: none;
+  height: 20%;
+  position: relative;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c-bg), var(--c-ink) 7%);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+.padCols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(12, 1fr); }
+.padCols span { border-left: 1px solid color-mix(in srgb, var(--c-bg), var(--c-ink) 12%); }
+.padCols span:first-child { border-left: 0; }
+.padCols span.on { background: color-mix(in srgb, var(--c-bg), var(--c-ink) 14%); }
+.padDot {
+  position: absolute;
+  width: 16px; height: 16px; margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--c-mid);
+  outline: 4px solid color-mix(in srgb, var(--c-mid) 25%, transparent);
+  pointer-events: none;
+  transition: left .08s, top .08s;
+}
+.pad.held .padDot { transition: none; width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+.board canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Sequencer */
+.grid {
+  display: grid;
+  grid-template-columns: 44px repeat(16, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr)) 10px repeat(8, minmax(0, 1fr)) 10px repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  touch-action: none;
+}
+.cell {
+  min-width: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c-bg), var(--c-ink) 8%);
+  cursor: pointer;
+  transition: background .08s, transform .1s;
+}
+.cell.beat { background: color-mix(in srgb, var(--c-bg), var(--c-ink) 14%); }
+.cell.now { background: color-mix(in srgb, var(--c-bg), var(--c-ink) 24%); }
+.cell.on.drums { background: var(--c-ink); }
+.cell.on.lead { background: var(--c-mid); }
+.cell.on.bass { background: var(--c-alt); }
+.cell.on.now { transform: scale(.82); }
+.cell.muted { opacity: .28; }
+.lab {
+  border: 0; border-radius: 4px; padding: 0 4px;
+  background: transparent;
+  font: 500 10px var(--font);
+  color: color-mix(in srgb, var(--c-ink) 60%, transparent);
+  text-align: left;
+}
+.lab:hover { color: var(--c-ink); }
+.lab.muted { text-decoration: line-through; opacity: .5; }
+
+/* Panel */
+.panel {
+  border-left: 1px solid var(--line);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.kicker {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted);
+}
+h1 { font: 56px/1 var(--serif); letter-spacing: -.01em; margin: 6px 0 12px; }
+.lede { color: var(--muted); max-width: 32ch; }
+
+h2 {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  display: flex; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.val { color: var(--muted); letter-spacing: 0; text-transform: none; font-weight: 500; }
+
+.group { display: flex; flex-direction: column; }
+.group input[type=range] + h2 { margin-top: 16px; }
+
+hr { border: 0; border-top: 1px solid var(--line); }
+
+button {
+  font: 500 13px var(--font);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+button:hover:not(:disabled) { border-color: var(--ink); }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.lab:hover { border: 0; }
+
+.row { display: flex; gap: 8px; }
+.row button { flex: 1; padding-left: 8px; padding-right: 8px; }
+
+.transport { display: flex; flex-direction: column; gap: 10px; }
+.status { font-size: 12px; color: var(--muted); min-height: 1.45em; }
+
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--surface);
+}
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+.seg button { border: 0; padding: 8px 4px; background: transparent; }
+.seg button.on { background: var(--ink); color: var(--bg); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { padding: 7px 12px; }
+
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch {
+  width: 34px; height: 34px; padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.swatch.on { outline-color: var(--ink); }
+
+input[type=range] { width: 100%; accent-color: var(--ink); }
+
+.text {
+  width: 100%;
+  font: 500 14px var(--font);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.text:focus { outline: none; border-color: var(--ink); }
+
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); cursor: pointer; }
+.check input { accent-color: var(--ink); }
+
+
+
+
+
+/* Narrow: grid above cloth, panel below */
+@media (max-width: 1100px) {
+  .stage { flex-direction: column; gap: 24px; }
+  :root { --tile: min(calc(100vw - 340px - 64px), 560px); }
+}
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  :root { --tile: min(calc(100vw - 32px), 560px); }
+  .stage { padding: 16px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); padding: 24px 16px 40px; max-height: none; position: static; }
+}
+
+/* Legend: the same glyphs the cloth uses */
+.legend { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; color: var(--muted); font-size: 12px; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.k { margin-left: 6px; }
+.k { flex: none; width: 22px; height: 12px; position: relative; display: inline-block; border-radius: 2px; }
+.k.kick { background: var(--c-ink); }
+.k.bass { background: var(--c-alt); }
+.k.lead { background: var(--c-mid); }
+.k.snare { border: 3px solid var(--c-ink); }
+.k.clap { background: linear-gradient(90deg, transparent 28%, var(--c-ink) 28% 42%, transparent 42% 58%, var(--c-ink) 58% 72%, transparent 72%); }
+.k.hat::after { content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px; background: var(--c-ink); }
+
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.actions .span { grid-column: 1 / -1; }
+.actions button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Pitched rows have no names; a short dash still shows where to click to mute. */
+.lab:empty::before { content: ""; display: block; width: 10px; height: 2px; background: currentColor; }

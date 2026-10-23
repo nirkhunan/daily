@@ -16,11 +16,15 @@ export async function boroughs() {
 // A projection that fits `geo` inside the map area. The returned view draws
 // GeoJSON with view.path and turns lon/lat into canvas x/y with view.xy.
 // view.key changes whenever the projection does, so days can cache projected data.
-export function view(ctx, rect, geo, { angle = 0, pad = 16 } = {}) {
+// `extent` ([west, south, east, north]) fits that area instead of all of `geo`.
+export function view(ctx, rect, geo, { angle = 0, pad = 16, extent = null } = {}) {
   const p = pad * rect.s;
+  const target = extent
+    ? { type: 'MultiPoint', coordinates: [[extent[0], extent[1]], [extent[2], extent[3]], [extent[0], extent[3]], [extent[2], extent[1]]] }
+    : geo;
   const proj = geoMercator().angle(angle)
-    .fitExtent([[rect.x + p, rect.y + p], [rect.x + rect.w - p, rect.y + rect.h - p]], geo);
-  const key = [rect.x, rect.y, rect.w, rect.h, angle].join(':');
+    .fitExtent([[rect.x + p, rect.y + p], [rect.x + rect.w - p, rect.y + rect.h - p]], target);
+  const key = [rect.x, rect.y, rect.w, rect.h, angle, extent ?? 'all'].join(':');
   return { proj, path: geoPath(proj, ctx), xy: (lon, lat) => proj([lon, lat]), rect, s: rect.s, key };
 }
 

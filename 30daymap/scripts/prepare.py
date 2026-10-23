@@ -3,9 +3,9 @@
 Run from the 30daymap folder:  python3 scripts/prepare.py
 Sources (NYC Open Data):
   Borough Boundaries, Department of City Planning      gthc-hcne
-  2015 Street Tree Census - Tree Data, NYC Parks        uvpi-gqnh
+  Forestry Tree Points, NYC Parks (live, updated daily) hn5i-inap
 """
-import csv, io, json, struct, urllib.request
+import csv, datetime, io, json, struct, urllib.request
 from collections import Counter
 
 API = 'https://data.cityofnewyork.us'
@@ -29,26 +29,51 @@ def boroughs():
 
 
 def trees():
-    url = f"{API}/resource/uvpi-gqnh.csv?$select=longitude,latitude,spc_common&$where=status='Alive'&$limit=800000"
-    rows = list(csv.DictReader(io.StringIO(get(url).decode())))
-    rows = [t for t in rows if t['longitude'] and t['latitude']]
-    counts = Counter(t['spc_common'] or 'unknown' for t in rows)
-    species = [name for name, _ in counts.most_common(254)]
-    index = {name: i for i, name in enumerate(species)}
-    lon = [float(t['longitude']) for t in rows]
-    lat = [float(t['latitude']) for t in rows]
+    """Every living tree NYC Parks manages (street and park trees), packed for the map."""
+    rows, page = [], 200000
+    while True:
+        url = (f"{API}/resource/hn5i-inap.csv?$select=objectid,location,genusspecies,dbh,tpcondition"
+               f"&$where=tpstructure='Full'%20AND%20tpcondition!='Dead'&$order=objectid&$limit={page}&$offset={len(rows)}")
+        batch = list(csv.DictReader(io.StringIO(get(url).decode())))
+        rows += batch
+        print(len(rows), 'rows')
+        if len(batch) < page:
+            break
+
+    trees = []
+    for t in rows:
+        if not t['location'].startswith('POINT'):
+            continue
+        lon, lat = map(float, t['location'][t['location'].index('(') + 1:-1].split())
+        name = t['genusspecies'] or 'Unknown'
+        latin, _, common = name.partition(' - ')
+        trees.append((lon, lat, common.strip() or latin.strip(), latin.strip(), int(float(t['dbh'] or 0)), t['tpcondition'] or 'Unknown'))
+
+    counts = Counter(t[2] for t in trees)
+    species = [n for n, _ in counts.most_common()]
+    latin = {}
+    for t in trees:
+        latin.setdefault(t[2], t[3])
+    sp_index = {n: i for i, n in enumerate(species)}
+    conditions = ['Excellent', 'Good', 'Fair', 'Poor', 'Critical', 'Unknown']
+    lon = [t[0] for t in trees]; lat = [t[1] for t in trees]
     bbox = [min(lon), min(lat), max(lon), max(lat)]
-    # Each tree: lon and lat quantised to 16 bits inside the bounding box (about 1 m), then a species byte (255 = other).
+    # Each tree, 8 bytes: lon, lat (16-bit, about 1 m), species (16-bit), trunk diameter in inches (8-bit), condition (8-bit).
     out = bytearray()
-    for t, x, y in zip(rows, lon, lat):
-        qx = round((x - bbox[0]) / (bbox[2] - bbox[0]) * 65535)
-        qy = round((y - bbox[1]) / (bbox[3] - bbox[1]) * 65535)
-        out += struct.pack('<HHB', qx, qy, index.get(t['spc_common'] or 'unknown', 255))
+    for t in trees:
+        out += struct.pack('<HHHBB',
+                           round((t[0] - bbox[0]) / (bbox[2] - bbox[0]) * 65535),
+                           round((t[1] - bbox[1]) / (bbox[3] - bbox[1]) * 65535),
+                           sp_index[t[2]], min(t[4], 255),
+                           conditions.index(t[5]) if t[5] in conditions else 5)
     open('data/trees.bin', 'wb').write(out)
-    json.dump({'count': len(rows), 'bbox': bbox, 'species': species,
-               'speciesCounts': [counts[s] for s in species]},
+    meta = json.loads(get(f'{API}/api/views/hn5i-inap.json'))
+    updated = datetime.datetime.fromtimestamp(meta['rowsUpdatedAt'], datetime.timezone.utc).strftime('%Y-%m-%d')
+    json.dump({'count': len(trees), 'bbox': bbox, 'updated': updated, 'conditions': conditions,
+               'species': species, 'latin': [latin[n] for n in species],
+               'speciesCounts': [counts[n] for n in species]},
               open('data/trees.json', 'w'))
-    print(len(rows), 'trees,', len(out) // 1024, 'KB')
+    print(len(trees), 'trees,', len(species), 'species,', len(out) // 1024, 'KB, data updated', updated)
 
 
 boroughs()

@@ -27,7 +27,15 @@ body {
   display: grid;
   place-items: center;
   padding: 32px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
 }
+
+/* Explore: the street map fills the stage. Poster: the framed canvas. */
+#explore { width: 100%; height: 100%; border-radius: 12px; overflow: hidden; }
+body[data-mode=explore] #map, body[data-mode=poster] #explore { display: none; }
+body[data-mode=explore] .only-poster, body[data-mode=poster] .only-explore { display: none; }
 
 /* The post, at 4:5, as large as the window allows. */
 #map {
@@ -42,6 +50,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 22px;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .kicker {
@@ -105,3 +115,31 @@ button.primary { background: var(--ink); color: var(--bg); border-color: var(--i
   #map { width: 100%; }
   .panel { border-left: 0; border-top: 1px solid var(--line); padding: 24px 16px 40px; }
 }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 8px; }
+.seg button.on { background: var(--ink); color: var(--bg); }
+
+/* Species legend */
+.inview { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.inview b { color: var(--ink); font-weight: 600; }
+.chips { display: flex; gap: 6px; margin-bottom: 10px; }
+.chips button { padding: 6px 12px; }
+.find { width: 100%; font: 500 13px var(--font); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--surface); margin-bottom: 6px; }
+.species { list-style: none; padding: 0; max-height: 42vh; overflow-y: auto; }
+.species li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
+.species .sp { flex: 1; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 0; background: transparent; padding: 7px 2px; text-align: left; min-width: 0; }
+.species .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); border: 2px solid var(--c); flex: none; }
+.species .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.species .n { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+.species li.off .dot { background: transparent; }
+.species li.off .name, .species li.off .n { opacity: .4; }
+.species .solo { border: 0; background: transparent; padding: 4px 6px; font-size: 11px; color: var(--muted); opacity: 0; }
+.species li:hover .solo { opacity: 1; }
+.species .solo:hover { color: var(--ink); }
+
+/* Tree card on hover */
+.tree-tip { background: #141414 !important; color: #F6F5F2 !important; font: 13px/1.4 "Instrument Sans", sans-serif !important; padding: 10px 12px !important; border-radius: 8px; display: flex; flex-direction: column; gap: 2px; }
+.tree-tip i { opacity: .7; }
+.tree-tip span { opacity: .7; font-size: 12px; }
+.tree-tip b, .tree-tip i, .tree-tip span { display: block; }

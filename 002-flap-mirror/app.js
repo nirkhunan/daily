@@ -332,7 +332,6 @@ function setSource(el, mirror) {
   const back = $('backdrop');
   back.replaceChildren();
   back.classList.toggle('mirrored', mirror);
-  document.body.classList.add('live');
   if (el instanceof HTMLVideoElement) {
     const v = document.createElement('video');
     v.muted = true; v.playsInline = true; v.srcObject = el.srcObject;

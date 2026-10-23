@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>30 Day Map Challenge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <main class="app">
+    <section class="stage">
+      <canvas id="map"></canvas>
+    </section>
+
+    <aside class="panel">
+      <header>
+        <p class="kicker">30 Day Map Challenge</p>
+        <h1>New York</h1>
+        <p class="lede">Thirty maps of one city, November 2026.</p>
+      </header>
+
+      <label class="field"><span>Day</span><select id="day"></select></label>
+      <div id="options"></div>
+
+      <section class="group">
+        <h2>Colour</h2>
+        <div id="swatches" class="swatches"></div>
+      </section>
+
+      <label class="check"><input id="grid" type="checkbox"> Turn to the Manhattan grid</label>
+
+      <section class="group">
+        <h2>Export</h2>
+        <div class="row">
+          <button id="export1" class="primary">1080 × 1350</button>
+          <button id="export2">2160 × 2700</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>

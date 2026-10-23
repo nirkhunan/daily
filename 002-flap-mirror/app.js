@@ -15,7 +15,9 @@ const GAP_X = 0.14, GAP_Y = 0.2;   // gaps, as parts of a card's width / height
 const FLIP = 170;                  // ms for one flap to fall
 const SETTLE = 10000;              // ms of stillness to find the face
 const RIPPLE = 700;                // ms for a ripple to cross the board
-const MOVE = 2.8;                  // mean change in brightness that counts as moving
+const SAMPLE = 100;                // ms between looks for movement
+const CHANGE = 22;                 // brightness change that counts for one part of the picture
+const MOVE = 0.04;                 // share of the picture that must change to count as moving
 const HOUSING = '#0B0B0B';
 
 const canvas = document.getElementById('board');
@@ -97,7 +99,7 @@ function nearby(i, settled) {
 }
 
 function update(now) {
-  const moving = now - lastMove < 300;
+  const moving = now - lastMove < 400;
   const still = moving ? 0 : now - stillSince;
   const settled = Math.min(1, still / SETTLE);
   let flips = 0, locked = 0;
@@ -210,27 +212,38 @@ function draw(now) {
 
 /* ---------- Telling when you move ---------- */
 
+// Ten times a second, compare the picture with the one from 200 ms before. A part only
+// counts as changed when it changes a lot, after taking away any change to
+// the whole picture (the camera adjusting its exposure). You are moving when
+// enough of the picture changes twice in a row, so camera grain, blinking,
+// breathing and talking don't count; turning, leaning or waving do.
+let lastSample = 0, hits = 0, olderLum = null;
 function sense(now) {
   if (!source || source instanceof HTMLImageElement) return;
+  if (now - lastSample < SAMPLE) return;
+  lastSample = now;
   tctx.drawImage(pic, 0, 0, MW, MH);
   const d = tctx.getImageData(0, 0, MW, MH).data;
   const lum = new Float32Array(MW * MH);
   for (let i = 0; i < lum.length; i++) lum[i] = d[i * 4] * 0.299 + d[i * 4 + 1] * 0.587 + d[i * 4 + 2] * 0.114;
-  if (prevLum) {
-    let sum = 0, mx = 0, my = 0, mw = 0;
+  const ref = olderLum;
+  olderLum = prevLum;
+  prevLum = lum;
+  if (ref) {
+    let shift = 0;
+    for (let i = 0; i < lum.length; i++) shift += lum[i] - ref[i];
+    shift /= lum.length;
+    let changed = 0, mx = 0, my = 0;
     for (let i = 0; i < lum.length; i++) {
-      const diff = Math.abs(lum[i] - prevLum[i]);
-      sum += diff;
-      if (diff > 24) { mx += (i % MW) * diff; my += Math.floor(i / MW) * diff; mw += diff; }
+      if (Math.abs(lum[i] - ref[i] - shift) > CHANGE) { changed++; mx += i % MW; my += Math.floor(i / MW); }
     }
-    // How much movement it takes; breathing and camera noise sit below it.
-    if (sum / lum.length > MOVE && mw > 0) {
-      if (now - lastMove > 300) scramble((mx / mw + 0.5) / MW, (my / mw + 0.5) / MH);
+    hits = changed / lum.length > MOVE ? hits + 1 : 0;
+    if (hits >= 2) {
+      if (now - lastMove > 500) scramble((mx / changed + 0.5) / MW, (my / changed + 0.5) / MH);
       else stillSince = now;
       lastMove = now;
     }
   }
-  prevLum = lum;
 }
 
 /* ---------- Sound: the clack ---------- */
@@ -314,7 +327,7 @@ function usePhoto(file) {
 }
 
 function setSource(el, mirror) {
-  source = el; mirrored = mirror; prevLum = null;
+  source = el; mirrored = mirror; prevLum = olderLum = null;
   ui.start.hidden = true;
   scramble(0.5, 0.5);
 }

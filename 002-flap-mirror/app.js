@@ -9,6 +9,7 @@ const PAD = 36, GAP = 3;           // board edge and the gap between flaps
 const FLIP = 170;                  // ms for one flap to fall
 const SETTLE = 10000;              // ms of stillness to find the face
 const RIPPLE = 700;                // ms for a ripple to cross the board
+const MOVE = 2.8;                  // mean change in brightness that counts as moving
 
 const canvas = document.getElementById('board');
 canvas.width = W; canvas.height = H;
@@ -29,7 +30,7 @@ let prevLum = null;
 const $ = id => document.getElementById(id);
 const ui = {
   start: $('start'), startNote: $('startNote'), state: $('state'), progress: $('progress'),
-  sens: $('sens'), sound: $('sound'), record: $('record'),
+  sound: $('sound'), record: $('record'),
 };
 
 let source = null, mirrored = false;
@@ -199,9 +200,8 @@ function sense(now) {
       sum += diff;
       if (diff > 24) { mx += (i % MW) * diff; my += Math.floor(i / MW) * diff; mw += diff; }
     }
-    // The slider sets how much movement it takes; breathing and camera noise sit below it.
-    const threshold = +ui.sens.value / 2.5;
-    if (sum / lum.length > threshold && mw > 0) {
+    // How much movement it takes; breathing and camera noise sit below it.
+    if (sum / lum.length > MOVE && mw > 0) {
       if (now - lastMove > 300) scramble((mx / mw + 0.5) / MW, (my / mw + 0.5) / MH);
       else stillSince = now;
       lastMove = now;
@@ -212,37 +212,51 @@ function sense(now) {
 
 /* ---------- Sound: the clack ---------- */
 
-let audio = null, master = null, clackBuf = null, soundOn = true, recordDest = null;
+// Each flap size has its own knock: big cards thud, small ones tick.
+//   card: how long the card's snap rings; drum: the pitch and ring of the
+//   thump; band: the range the snap is filtered to; rate: playback speeds;
+//   voices: how many knocks can sound at once.
+const KNOCKS = {
+  16: { card: 0.007, drum: [105, 0.03], band: [800, 700], rate: [0.7, 0.25], voices: 3, gain: 0.55 },
+  24: { card: 0.0035, drum: [190, 0.012], band: [1800, 1800], rate: [0.75, 0.6], voices: 5, gain: 0.45 },
+  36: { card: 0.0018, drum: [340, 0.005], band: [3200, 2200], rate: [1, 0.5], voices: 6, gain: 0.35 },
+};
+
+let audio = null, master = null, buffers = {}, soundOn = true, recordDest = null;
 
 function startAudio() {
   if (audio) return;
   audio = new AudioContext();
   master = audio.createGain();
-  master.gain.value = 0.8;
+  master.gain.value = 0.55;
   master.connect(audio.destination);
   recordDest = audio.createMediaStreamDestination();
   master.connect(recordDest);
   // A short knock: a burst of noise for the card, a low thump for the drum.
-  const len = Math.floor(audio.sampleRate * 0.05);
-  clackBuf = audio.createBuffer(1, len, audio.sampleRate);
-  const ch = clackBuf.getChannelData(0);
-  for (let i = 0; i < len; i++) {
-    const s = i / audio.sampleRate;
-    ch[i] = (Math.random() * 2 - 1) * Math.exp(-s / 0.0035) * 0.9
-          + Math.sin(2 * Math.PI * 190 * s) * Math.exp(-s / 0.012) * 0.5;
+  for (const [size, k] of Object.entries(KNOCKS)) {
+    const len = Math.floor(audio.sampleRate * 0.08);
+    const buf = audio.createBuffer(1, len, audio.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const s = i / audio.sampleRate;
+      ch[i] = (Math.random() * 2 - 1) * Math.exp(-s / k.card) * 0.9
+            + Math.sin(2 * Math.PI * k.drum[0] * s) * Math.exp(-s / k.drum[1]) * 0.5;
+    }
+    buffers[size] = buf;
   }
 }
 
 function clack(n) {
   if (!audio || !soundOn) return;
-  const voices = Math.min(n, 5), gain = 0.5 / Math.sqrt(voices) * Math.min(1, 0.35 + n / 12);
+  const k = KNOCKS[cols];
+  const voices = Math.min(n, k.voices), gain = k.gain / Math.sqrt(voices) * Math.min(1, 0.35 + n / 12);
   for (let v = 0; v < voices; v++) {
     const src = audio.createBufferSource();
-    src.buffer = clackBuf;
-    src.playbackRate.value = 0.75 + Math.random() * 0.6;
+    src.buffer = buffers[cols];
+    src.playbackRate.value = k.rate[0] + Math.random() * k.rate[1];
     const bp = audio.createBiquadFilter();
     bp.type = 'bandpass';
-    bp.frequency.value = 1800 + Math.random() * 1800;
+    bp.frequency.value = k.band[0] + Math.random() * k.band[1];
     bp.Q.value = 0.9;
     const g = audio.createGain();
     g.gain.value = gain;

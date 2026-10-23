@@ -2,14 +2,15 @@ import { frame, W, H } from './kit/frame.js';
 import { boroughs, view, clip, land, bestAngle, MANHATTAN_GRID } from './kit/map.js';
 import { createExplorer } from './kit/explore.js';
 import { PALETTES } from './kit/palettes.js';
-import { DAYS } from './days/index.js?v=8';
+import { DAYS } from './days/index.js?v=10';
 
 const $ = s => document.querySelector(s);
 const canvas = $('#map'), ctx = canvas.getContext('2d');
 canvas.width = W; canvas.height = H;
 
 const params = new URLSearchParams(location.search);
-const state = { day: +params.get('day') || 1, palette: 0, grid: false, opts: {}, mode: 'explore' };
+const latest = Math.max(...Object.keys(DAYS).map(Number));
+const state = { day: DAYS[+params.get('day')] ? +params.get('day') : latest, palette: 0, grid: false, opts: {}, mode: 'explore' };
 const loaded = {};   // day number → { mod, data }
 
 async function getDay(n) {
@@ -55,7 +56,7 @@ async function drawPoster() {
 // Explorer ----------------------------------------------------------------
 
 let explorer = null;
-const listeners = { view: [], palette: [], hood: [] };
+const listeners = { view: [], palette: [], hood: [], options: [] };
 
 function refreshLayers() {
   const { mod, data } = current();
@@ -125,6 +126,17 @@ $('#wholeCity').onclick = () => { current().data.extent = null; selectHood(null,
 
 async function buildOptions() {
   const { mod, data } = await getDay(state.day);
+  // The header names the day, and links to every day built so far.
+  $('.kicker').textContent = `30 Day Map Challenge · Day ${String(mod.day).padStart(2, '0')}`;
+  $('h1').textContent = mod.short ?? mod.title;
+  document.title = `${String(mod.day).padStart(2, '0')} ${mod.theme} · 30 Day Map Challenge`;
+  $('#days').replaceChildren(...Object.keys(DAYS).map(Number).map(n => {
+    const a = document.createElement('a');
+    a.href = `?day=${n}`;
+    a.textContent = String(n).padStart(2, '0');
+    if (n === state.day) a.className = 'on';
+    return a;
+  }));
   const box = $('#options');
   box.replaceChildren();
   for (const [key, o] of Object.entries(mod.options?.(data) ?? {})) {
@@ -135,7 +147,7 @@ async function buildOptions() {
     const sel = document.createElement('select');
     sel.append(...o.values.map(v => new Option(v, v)));
     sel.value = state.opts[key];
-    sel.onchange = e => { state.opts[key] = e.target.value; changed(); };
+    sel.onchange = e => { state.opts[key] = e.target.value; listeners.options.forEach(f => f()); changed(); };
     label.append(sel);
     box.append(label);
   }
@@ -146,6 +158,8 @@ async function buildOptions() {
       onView: f => listeners.view.push(f),
       onPalette: f => listeners.palette.push(f),
       onHood: f => listeners.hood.push(f),
+      onOptions: f => listeners.options.push(f),
+      opts: () => state.opts,
       selectHood,
     });
   }

@@ -35,6 +35,7 @@ function bboxOf(feature) {
 export default {
   day: 1,
   theme: 'Points',
+  short: 'Every tree',
   title: 'Every tree in New York',
   credit: 'Data: NYC Parks, Forestry Tree Points · NYC Planning, Neighborhood Tabulation Areas',
 

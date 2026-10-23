@@ -5,8 +5,11 @@ Sources (NYC Open Data):
   Borough Boundaries, Department of City Planning      gthc-hcne
   Forestry Tree Points, NYC Parks (live, updated daily) hn5i-inap
   2020 Neighborhood Tabulation Areas, NYC Planning      9nt8-h7nd
+  New York City Bike Routes, NYC DOT                    mzxg-pwib
+
+Run a single step by naming it:  python3 scripts/prepare.py bikes
 """
-import csv, datetime, io, json, struct, urllib.request
+import csv, datetime, io, json, math, struct, sys, urllib.request
 
 import numpy as np
 from collections import Counter
@@ -79,6 +82,30 @@ def trees():
     print(len(trees), 'trees,', len(species), 'species,', len(out) // 1024, 'KB, data updated', updated)
 
 
+def hood_of(lon, lat, hoods):
+    """Which neighbourhood (index into hoods) each point is in, 65535 for none.
+    Point in polygon with numpy: each ring flips "inside" for the points it crosses."""
+    lon, lat = np.asarray(lon), np.asarray(lat)
+    nta = np.full(len(lon), 65535, dtype='<u2')
+    for k, f in enumerate(hoods):
+        for poly in f['geometry']['coordinates']:
+            ring = np.array(poly[0])
+            m = (lon >= ring[:, 0].min()) & (lon <= ring[:, 0].max()) & (lat >= ring[:, 1].min()) & (lat <= ring[:, 1].max()) & (nta == 65535)
+            idx = np.nonzero(m)[0]
+            if not len(idx):
+                continue
+            inside = np.zeros(len(idx), bool)
+            for ring_pts in poly:   # outer ring, then holes
+                rp = np.array(ring_pts)
+                px, py = lon[idx], lat[idx]
+                for a, b, c, d in zip(rp[:-1, 0], rp[:-1, 1], rp[1:, 0], rp[1:, 1]):
+                    if b == d:
+                        continue
+                    inside ^= ((b > py) != (d > py)) & (px < (c - a) * (py - b) / (d - b) + a)
+            nta[idx[inside]] = k
+    return nta
+
+
 def neighborhoods():
     """Neighbourhood shapes, and which neighbourhood every tree stands in."""
     geo = json.loads(get(f'{API}/api/geospatial/9nt8-h7nd?method=export&format=GeoJSON'))
@@ -97,36 +124,81 @@ def neighborhoods():
                     'geometry': {'type': 'MultiPolygon', 'coordinates': r(polys)}})
     json.dump({'type': 'FeatureCollection', 'features': out}, open('data/neighborhoods.json', 'w'), separators=(',', ':'))
 
-    # Point in polygon for every tree, with numpy: each ring flips "inside" for the points it crosses.
     meta = json.load(open('data/trees.json'))
     raw = np.frombuffer(open('data/trees.bin', 'rb').read(), dtype=np.dtype([('x', '<u2'), ('y', '<u2'), ('s', '<u2'), ('d', 'u1'), ('c', 'u1')]))
     x0, y0, x1, y1 = meta['bbox']
-    lon = x0 + raw['x'] / 65535 * (x1 - x0)
-    lat = y0 + raw['y'] / 65535 * (y1 - y0)
-    nta = np.full(len(raw), 65535, dtype='<u2')
-    for k, f in enumerate(out):
-        for poly in f['geometry']['coordinates']:
-            ring = np.array(poly[0])
-            m = (lon >= ring[:, 0].min()) & (lon <= ring[:, 0].max()) & (lat >= ring[:, 1].min()) & (lat <= ring[:, 1].max()) & (nta == 65535)
-            idx = np.nonzero(m)[0]
-            if not len(idx):
-                continue
-            inside = np.zeros(len(idx), bool)
-            for ring_pts in poly:   # outer ring, then holes
-                rp = np.array(ring_pts)
-                xi, yi = rp[:-1, 0], rp[:-1, 1]
-                xj, yj = rp[1:, 0], rp[1:, 1]
-                px, py = lon[idx], lat[idx]
-                for a, b, c, d in zip(xi, yi, xj, yj):
-                    if b == d:
-                        continue
-                    cross = ((b > py) != (d > py)) & (px < (c - a) * (py - b) / (d - b) + a)
-                    inside ^= cross
-            nta[idx[inside]] = k
+    nta = hood_of(x0 + raw['x'] / 65535 * (x1 - x0), y0 + raw['y'] / 65535 * (y1 - y0), out)
     open('data/trees-nta.bin', 'wb').write(nta.tobytes())
     print(len(out), 'neighbourhoods;', int((nta == 65535).sum()), 'trees outside any')
 
 
-boroughs()
-trees()
-neighborhoods()
+BIKE_KINDS = ['Protected lane', 'Greenway or path', 'Painted lane', 'Shared street']
+
+
+def bike_kind(p):
+    """Sort DOT's facility classes into four kinds a rider would recognise."""
+    c, facs = p['facilitycl'], {p['ft_facilit'], p['tf_facilit']}
+    if c in ('I', 'L') and (p['onoffst'] == 'OFF' or facs & {'Sidewalk', 'Boardwalk', 'Unpaved'}):
+        return 1
+    if c == 'I':
+        return 0
+    if c == 'II':
+        return 2
+    return 3 if p['onoffst'] == 'ON' else 1
+
+
+def bikes():
+    """Every bike route segment NYC DOT has built, current and retired, packed for the map."""
+    geo = json.loads(get(f'{API}/api/geospatial/mzxg-pwib?method=export&format=GeoJSON'))
+    feats = [f for f in geo['features'] if f['geometry'] and f['properties'].get('instdate')]
+    lines = []
+    for f in feats:
+        g = f['geometry']
+        parts = g['coordinates'] if g['type'] == 'MultiLineString' else [g['coordinates']]
+        lines.append([pt for part in parts for pt in part])   # segments are short; join their parts
+    keep = [i for i, ln in enumerate(lines) if len(ln) >= 2]   # a few rows have no line
+    feats, lines = [feats[i] for i in keep], [lines[i] for i in keep]
+    allpts = [pt for ln in lines for pt in ln]
+    bbox = [min(p[0] for p in allpts), min(p[1] for p in allpts), max(p[0] for p in allpts), max(p[1] for p in allpts)]
+
+    def metres(ln):
+        m = 0
+        for (a, b), (c, d) in zip(ln, ln[1:]):
+            m += math.hypot((c - a) * 111320 * math.cos(math.radians(b)), (d - b) * 110540)
+        return m
+
+    hoods = json.load(open('data/neighborhoods.json'))['features']
+    mids = [ln[len(ln) // 2] for ln in lines]
+    nta = hood_of([m[0] for m in mids], [m[1] for m in mids], hoods)
+
+    streets, sidx = [], {}
+    def street(name):
+        name = (name or '').strip().title()
+        if name not in sidx:
+            sidx[name] = len(streets); streets.append(name)
+        return sidx[name]
+
+    # Each segment, as a row: street, from, to, kind, year built, year retired (0 if current), neighbourhood, metres.
+    # Its points go to bikes.bin: a count (16-bit), then lon, lat pairs (16-bit, about 1 m).
+    segs, out = [], bytearray()
+    for f, ln, k in zip(feats, lines, nta):
+        p = f['properties']
+        ret = int(p['ret_date'][:4]) if p.get('ret_date') else 0
+        segs.append([street(p['street']), street(p['fromstreet']), street(p['tostreet']), bike_kind(p),
+                     int(p['instdate'][:4]), ret, int(k), round(metres(ln))])
+        out += struct.pack('<H', len(ln))
+        for x, y in ln:
+            out += struct.pack('<HH', round((x - bbox[0]) / (bbox[2] - bbox[0]) * 65535), round((y - bbox[1]) / (bbox[3] - bbox[1]) * 65535))
+    open('data/bikes.bin', 'wb').write(out)
+    meta = json.loads(get(f'{API}/api/views/mzxg-pwib.json'))
+    updated = datetime.datetime.fromtimestamp(meta['rowsUpdatedAt'], datetime.timezone.utc).strftime('%Y-%m-%d')
+    json.dump({'count': len(segs), 'bbox': bbox, 'updated': updated, 'kinds': BIKE_KINDS, 'streets': streets, 'segs': segs},
+              open('data/bikes.json', 'w'), separators=(',', ':'))
+    cur = [s for s in segs if not s[5]]
+    print(len(segs), 'segments,', len(cur), 'current,', round(sum(s[7] for s in cur) / 1000), 'km current,',
+          len(out) // 1024, 'KB points, data updated', updated)
+
+
+STEPS = {'boroughs': boroughs, 'trees': trees, 'neighborhoods': neighborhoods, 'bikes': bikes}
+for name in sys.argv[1:] or STEPS:
+    STEPS[name]()

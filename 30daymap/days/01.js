@@ -4,7 +4,7 @@
 // neighbourhood as a poster.
 
 import { land } from '../kit/map.js';
-import { alpha } from '../kit/palettes.js';
+import { alpha, mix } from '../kit/palettes.js';
 
 // One colour each for the 16 most common species, drawn from a forest:
 // leaf greens, mosses and teals, with autumn golds and bark browns so each
@@ -83,6 +83,11 @@ export default {
     return { c, total };
   },
 
+  // With a neighbourhood chosen, the poster fits that neighbourhood's own shape.
+  focus(data) {
+    return data.hood === null ? null : { geo: data.hoods[data.hood], id: data.hoods[data.hood].properties.code };
+  },
+
   // The poster title names the neighbourhood when one is chosen.
   heading(data) {
     return data.hood === null ? this.title : `Every tree in ${this.hoodName(data)}`;
@@ -120,7 +125,17 @@ export default {
   // Poster ------------------------------------------------------------------
 
   draw(ctx, v, { geo, data, opts, p }) {
-    land(ctx, v, geo, p, { fill: 0.035, line: 0.18 });
+    const hoodGeo = data.hood === null ? null : data.hoods[data.hood];
+    if (hoodGeo) {
+      // Only the neighbourhood: its ground, and nothing drawn outside it.
+      ctx.beginPath();
+      v.path(hoodGeo);
+      ctx.fillStyle = mix(p.bg, p.ink, 0.05);
+      ctx.fill();
+      ctx.clip();
+    } else {
+      land(ctx, v, geo, p, { fill: 0.035, line: 0.18 });
+    }
     if (data.xyKey !== v.key) {
       data.xy = new Float32Array(data.n * 2);
       for (let i = 0; i < data.n; i++) {
@@ -140,11 +155,6 @@ export default {
       if (r <= min * 1.5) ctx.fillRect(xy[i * 2] - r / 2, xy[i * 2 + 1] - r / 2, r, r);
       else { ctx.beginPath(); ctx.arc(xy[i * 2], xy[i * 2 + 1], r / 2, 0, Math.PI * 2); ctx.fill(); }
     };
-    // Trees outside the chosen neighbourhood stay as faint context.
-    if (hood !== null) {
-      ctx.fillStyle = alpha(p.ink, 0.12);
-      for (let i = 0; i < data.n; i++) if (on[sp[i]] && !inside(i)) dot(i);
-    }
     ctx.fillStyle = alpha(p.ink, 0.3);
     for (let i = 0; i < data.n; i++) if (sp[i] >= TOP && on[sp[i]] && inside(i)) dot(i);
     for (let s = TOP - 1; s >= 0; s--) {
@@ -152,14 +162,15 @@ export default {
       ctx.fillStyle = COLOURS[s];
       for (let i = 0; i < data.n; i++) if (sp[i] === s && inside(i)) dot(i);
     }
-    if (hood !== null) {
+    if (hoodGeo) {
+      // The edge, drawn after the clip is lifted so the full line shows.
+      ctx.restore();
+      ctx.save();
       ctx.beginPath();
-      v.path(data.hoods[hood]);
+      v.path(hoodGeo);
       ctx.strokeStyle = p.ink;
-      ctx.lineWidth = 1.6 * v.s;
-      ctx.setLineDash([6 * v.s, 4 * v.s]);
+      ctx.lineWidth = 1.4 * v.s;
       ctx.stroke();
-      ctx.setLineDash([]);
     }
   },
 

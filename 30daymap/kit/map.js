@@ -17,15 +17,26 @@ export async function boroughs() {
 // GeoJSON with view.path and turns lon/lat into canvas x/y with view.xy.
 // view.key changes whenever the projection does, so days can cache projected data.
 // `extent` ([west, south, east, north]) fits that area instead of all of `geo`.
-export function view(ctx, rect, geo, { angle = 0, pad = 16, extent = null } = {}) {
+export function view(ctx, rect, geo, { angle = 0, pad = 16, extent = null, id = '' } = {}) {
   const p = pad * rect.s;
   const target = extent
     ? { type: 'MultiPoint', coordinates: [[extent[0], extent[1]], [extent[2], extent[3]], [extent[0], extent[3]], [extent[2], extent[1]]] }
     : geo;
   const proj = geoMercator().angle(angle)
     .fitExtent([[rect.x + p, rect.y + p], [rect.x + rect.w - p, rect.y + rect.h - p]], target);
-  const key = [rect.x, rect.y, rect.w, rect.h, angle, extent ?? 'all'].join(':');
+  const key = [rect.x, rect.y, rect.w, rect.h, angle, extent ?? 'all', id].join(':');
   return { proj, path: geoPath(proj, ctx), xy: (lon, lat) => proj([lon, lat]), rect, s: rect.s, key };
+}
+
+// The rotation (in degrees) at which `geo` fills the map area the most.
+export function bestAngle(rect, geo, pad = 40) {
+  const p = pad * rect.s, box = [[rect.x + p, rect.y + p], [rect.x + rect.w - p, rect.y + rect.h - p]];
+  let best = 0, bestScale = 0;
+  for (let a = 0; a < 180; a += 3) {
+    const k = geoMercator().angle(a).fitExtent(box, geo).scale();
+    if (k > bestScale) { bestScale = k; best = a; }
+  }
+  return best;
 }
 
 // Keep everything a day draws inside the map area.

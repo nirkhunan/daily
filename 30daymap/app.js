@@ -1,8 +1,8 @@
 import { frame, W, H } from './kit/frame.js';
-import { boroughs, view, clip, land, MANHATTAN_GRID } from './kit/map.js';
+import { boroughs, view, clip, land, bestAngle, MANHATTAN_GRID } from './kit/map.js';
 import { createExplorer } from './kit/explore.js';
 import { PALETTES } from './kit/palettes.js';
-import { DAYS } from './days/index.js?v=7';
+import { DAYS } from './days/index.js?v=8';
 
 const $ = s => document.querySelector(s);
 const canvas = $('#map'), ctx = canvas.getContext('2d');
@@ -31,7 +31,11 @@ async function render(c, w) {
   const meta = { day: mod.day, theme: mod.theme, title: mod.heading?.(data) ?? mod.title, credit: mod.credit, subtitle: mod.subtitle?.(data, state.opts) };
   const rect = frame(c, w, meta, p);
   const geo = await boroughs();
-  const v = view(c, rect, geo, { angle: state.grid ? MANHATTAN_GRID : 0, extent: data.extent });
+  // A day can ask to fit something of its own, like the chosen neighbourhood.
+  const focus = mod.focus?.(data);
+  const v = focus
+    ? view(c, rect, focus.geo, { angle: state.grid ? bestAngle(rect, focus.geo) : 0, pad: 40, id: focus.id })
+    : view(c, rect, geo, { angle: state.grid ? MANHATTAN_GRID : 0, extent: data.extent });
   c.save();
   clip(c, rect);
   mod.draw(c, v, { geo, data, opts: state.opts, p, kit: { land } });
@@ -94,6 +98,7 @@ function selectHood(k, fly = true) {
   const q = params.toString();
   history.replaceState(null, '', `${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
   $('#frameView').textContent = k === null ? 'Make a poster of this view' : `Make a poster of ${mod.hoodName(data)}`;
+  $('#gridLabel').textContent = k === null ? 'Turn to the Manhattan grid' : 'Turn to fill the frame';
   listeners.hood.forEach(f => f());
   changed();
 }

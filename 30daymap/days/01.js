@@ -1,7 +1,7 @@
 // Day 01 · Points — every living tree NYC Parks looks after, one dot each,
-// coloured by species. Explore it down to a single tree, switch species on and
-// off, see what grows in the neighbourhood on screen, and frame any view as a
-// poster.
+// coloured by species. Explore it down to a single tree, pick a neighbourhood,
+// switch species on and off, see what grows there, and frame any view or
+// neighbourhood as a poster.
 
 import { land } from '../kit/map.js';
 import { alpha } from '../kit/palettes.js';
@@ -12,25 +12,36 @@ export const COLOURS = [
   '#C1A13A', '#8A4F2A', '#38A3D1', '#9C3D54', '#6C8A3F', '#D97C2B', '#5E548E', '#2F7F6F',
 ];
 const TOP = COLOURS.length;
+const NONE = 65535;   // a tree outside every neighbourhood
 
 const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const fmt = n => n.toLocaleString('en-US');
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const SIZES = ['Same size', 'Trunk width'];
 
-// Tree radius in metres: a small crown, or one that grows with the trunk.
-const radiusM = (dbh, size) => (size === SIZES[1] ? 1.2 + dbh * 0.11 : 2.5);
+// Tree radius in metres: a typical street-tree crown, or one that grows with the trunk.
+const radiusM = (dbh, size) => (size === SIZES[1] ? 1.2 + dbh * 0.11 : 3.5);
+
+function bboxOf(feature) {
+  const b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const poly of feature.geometry.coordinates) for (const [x, y] of poly[0]) {
+    b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y);
+  }
+  return b;
+}
 
 export default {
   day: 1,
   theme: 'Points',
   title: 'Every tree in New York',
-  credit: 'Data: NYC Parks, Forestry Tree Points · NYC Planning, Borough Boundaries',
+  credit: 'Data: NYC Parks, Forestry Tree Points · NYC Planning, Neighborhood Tabulation Areas',
 
   async load() {
-    const [meta, buf] = await Promise.all([
+    const [meta, buf, ntaBuf, hoods] = await Promise.all([
       fetch('data/trees.json').then(r => r.json()),
       fetch('data/trees.bin').then(r => r.arrayBuffer()),
+      fetch('data/trees-nta.bin').then(r => r.arrayBuffer()),
+      fetch('data/neighborhoods.json').then(r => r.json()),
     ]);
     const n = meta.count, dv = new DataView(buf), [x0, y0, x1, y1] = meta.bbox;
     const lon = new Float64Array(n), lat = new Float64Array(n);
@@ -43,10 +54,14 @@ export default {
       dbh[i] = dv.getUint8(o + 6);
       cond[i] = dv.getUint8(o + 7);
     }
+    hoods.features.forEach(f => (f.bbox = bboxOf(f)));
     return {
       meta, n, lon, lat, sp, dbh, cond,
+      nta: new Uint16Array(ntaBuf),
+      hoods: hoods.features,
+      hood: null,                                        // index of the chosen neighbourhood, or null
       on: new Uint8Array(meta.species.length).fill(1),   // which species are switched on
-      version: 0,                                        // bumps whenever `on` changes
+      version: 0,                                        // bumps whenever `on` or `hood` changes
       extent: null,                                      // [w, s, e, n] the poster frames, or null for the whole city
       bounds: null,                                      // what the explorer shows
     };
@@ -54,24 +69,43 @@ export default {
 
   options: () => ({ size: { label: 'Dot size', values: SIZES, value: SIZES[0] } }),
 
-  // Trees per species inside [w, s, e, n] (or citywide).
+  // Trees per species in the chosen neighbourhood, else inside [w, s, e, n], else citywide.
   counts(data, box) {
     const c = new Uint32Array(data.meta.species.length);
     let total = 0;
     for (let i = 0; i < data.n; i++) {
-      if (box && (data.lon[i] < box[0] || data.lon[i] > box[2] || data.lat[i] < box[1] || data.lat[i] > box[3])) continue;
+      if (data.hood !== null) { if (data.nta[i] !== data.hood) continue; }
+      else if (box && (data.lon[i] < box[0] || data.lon[i] > box[2] || data.lat[i] < box[1] || data.lat[i] > box[3])) continue;
       c[data.sp[i]]++; total++;
     }
     return { c, total };
   },
 
+  // The poster title names the neighbourhood when one is chosen.
+  heading(data) {
+    return data.hood === null ? this.title : `Every tree in ${this.hoodName(data)}`;
+  },
+
+  hoodName(data) {
+    const f = data.hoods[data.hood];
+    return f ? f.properties.name : null;
+  },
+
+  // Choose a neighbourhood (index) or clear it (null).
+  select(data, k) {
+    data.hood = k;
+    data.version++;
+    if (data.extent && k !== null) data.extent = data.hoods[k].bbox;
+  },
+
   subtitle(data) {
-    const { c, total } = this.counts(data, data.extent);
+    const { c, total } = this.counts(data, data.hood === null ? data.extent : null);
     let shown = 0, kinds = 0, top = 0;
     c.forEach((v, i) => { if (v) kinds++; if (data.on[i]) shown += v; if (v > c[top]) top = i; });
     const share = total ? Math.round((c[top] / total) * 100) : 0;
-    const where = data.extent ? 'in this view' : 'that NYC Parks looks after';
-    const lead = `${fmt(total)} living trees ${where}, ${kinds} species, one dot each.`;
+    const f = data.hoods[data.hood];
+    const where = f ? `in ${f.properties.name}, ${f.properties.borough}` : data.extent ? 'in this view' : 'that NYC Parks looks after';
+    const lead = `${fmt(total)} living trees ${where}, ${kinds} species.`;
     const most = `${cap(data.meta.species[top])} is the most common, ${share}% of them.`;
     const filt = shown < total ? ` Showing ${fmt(shown)}.` : '';
     return `${lead} ${most}${filt}`;
@@ -96,19 +130,34 @@ export default {
     // Pixels per metre at this scale, so a zoomed-in poster shows real crowns.
     const [ax, ay] = v.xy(-73.95, 40.7), [bx, by] = v.xy(-73.95 + 0.0011838, 40.7);
     const ppm = Math.hypot(bx - ax, by - ay) / 100, min = 1.05 * v.s;
-    const { xy, sp, dbh, on } = data;
+    const { xy, sp, dbh, on, nta, hood } = data;
+    const inside = i => hood === null || nta[i] === hood;
 
-    const dot = (i) => {
+    const dot = i => {
       const r = Math.max(min, radiusM(dbh[i], opts.size) * 2 * ppm);
       if (r <= min * 1.5) ctx.fillRect(xy[i * 2] - r / 2, xy[i * 2 + 1] - r / 2, r, r);
       else { ctx.beginPath(); ctx.arc(xy[i * 2], xy[i * 2 + 1], r / 2, 0, Math.PI * 2); ctx.fill(); }
     };
+    // Trees outside the chosen neighbourhood stay as faint context.
+    if (hood !== null) {
+      ctx.fillStyle = alpha(p.ink, 0.12);
+      for (let i = 0; i < data.n; i++) if (on[sp[i]] && !inside(i)) dot(i);
+    }
     ctx.fillStyle = alpha(p.ink, 0.3);
-    for (let i = 0; i < data.n; i++) if (sp[i] >= TOP && on[sp[i]]) dot(i);
+    for (let i = 0; i < data.n; i++) if (sp[i] >= TOP && on[sp[i]] && inside(i)) dot(i);
     for (let s = TOP - 1; s >= 0; s--) {
       if (!on[s]) continue;
       ctx.fillStyle = COLOURS[s];
-      for (let i = 0; i < data.n; i++) if (sp[i] === s) dot(i);
+      for (let i = 0; i < data.n; i++) if (sp[i] === s && inside(i)) dot(i);
+    }
+    if (hood !== null) {
+      ctx.beginPath();
+      v.path(data.hoods[hood]);
+      ctx.strokeStyle = p.ink;
+      ctx.lineWidth = 1.6 * v.s;
+      ctx.setLineDash([6 * v.s, 4 * v.s]);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
   },
 
@@ -121,62 +170,104 @@ export default {
       for (let i = 0; i < data.n; i++) if (data.on[data.sp[i]]) m++;
       const pos = new Float32Array(m * 2), col = new Uint8Array(m * 4), rad = new Float32Array(m), ids = new Uint32Array(m);
       const ink = [...rgb(p.ink), 120], tops = COLOURS.map(c => [...rgb(c), 235]);
+      const faded = [...rgb(p.ink), 28];
       for (let i = 0, j = 0; i < data.n; i++) {
         const s = data.sp[i];
         if (!data.on[s]) continue;
         pos[j * 2] = data.lon[i]; pos[j * 2 + 1] = data.lat[i];
-        col.set(s < TOP ? tops[s] : ink, j * 4);
+        col.set(data.hood !== null && data.nta[i] !== data.hood ? faded : s < TOP ? tops[s] : ink, j * 4);
         rad[j] = radiusM(data.dbh[i], opts.size);
         ids[j++] = i;
       }
       data.built = { m, pos, col, rad, ids };
       data.builtKey = key;
     }
-    const b = data.built;
-    return [new deck.ScatterplotLayer({
-      id: `trees-${key}`,
-      data: { length: b.m, attributes: { getPosition: { value: b.pos, size: 2 }, getFillColor: { value: b.col, size: 4, normalized: true }, getRadius: { value: b.rad, size: 1 } } },
-      radiusUnits: 'meters',
-      radiusMinPixels: 0.7,
-      radiusMaxPixels: 40,
-      pickable: true,
-      autoHighlight: true,
-      highlightColor: [255, 255, 255, 200],
-    })];
+    const b = data.built, line = rgb(p.ink);
+    return [
+      // Every neighbourhood, faintly outlined; clicking one selects it.
+      new deck.GeoJsonLayer({
+        id: `hoods-${data.hood}-${p.name}`,
+        data: { type: 'FeatureCollection', features: data.hoods },
+        filled: true,
+        stroked: true,
+        getFillColor: [0, 0, 0, 1],   // invisible, but keeps every neighbourhood clickable
+        getLineColor: (f) => (data.hoods.indexOf(f) === data.hood ? [...line, 230] : [...line, 50]),
+        getLineWidth: (f) => (data.hoods.indexOf(f) === data.hood ? 2.5 : 0.8),
+        lineWidthUnits: 'pixels',
+        pickable: true,
+      }),
+      new deck.ScatterplotLayer({
+        id: `trees-${key}`,
+        data: { length: b.m, attributes: { getPosition: { value: b.pos, size: 2 }, getFillColor: { value: b.col, size: 4, normalized: true }, getRadius: { value: b.rad, size: 1 } } },
+        radiusUnits: 'meters',
+        radiusMinPixels: 1.3,
+        radiusMaxPixels: 40,
+        pickable: true,
+        autoHighlight: true,
+        highlightColor: [255, 255, 255, 200],
+      }),
+    ];
   },
 
   tooltip(data) {
-    return ({ index }) => {
-      if (index < 0 || !data.built) return null;
-      const i = data.built.ids[index], s = data.sp[i];
+    return ({ index, layer, object }) => {
+      if (!layer || index < 0) return null;
+      if (layer.id.startsWith('hoods')) {
+        return { html: `<b>${object.properties.name}</b><span>${object.properties.borough} · click to choose</span>`, className: 'tree-tip' };
+      }
+      const i = data.built.ids[index], s = data.sp[i], k = data.nta[i];
+      const where = k === NONE ? '' : `<span>${data.hoods[k].properties.name}</span>`;
       return {
-        html: `<b>${cap(data.meta.species[s])}</b><i>${data.meta.latin[s]}</i><span>${data.dbh[i]} in trunk · ${data.meta.conditions[data.cond[i]]} condition</span>`,
+        html: `<b>${cap(data.meta.species[s])}</b><i>${data.meta.latin[s]}</i><span>${data.dbh[i]} in trunk · ${data.meta.conditions[data.cond[i]]} condition</span>${where}`,
         className: 'tree-tip',
       };
     };
   },
 
-  // The legend: every species in view, with its colour, count and an on/off switch.
+  // A click chooses the neighbourhood under it (on a tree, that tree's neighbourhood).
+  click(data, info) {
+    if (!info.layer || info.index < 0) return undefined;
+    if (info.layer.id.startsWith('hoods')) return data.hoods.indexOf(info.object);
+    const k = data.nta[data.built.ids[info.index]];
+    return k === NONE ? undefined : k;
+  },
+
+  // The side panel: a neighbourhood picker, then every species there with its
+  // colour, count and an on/off switch.
   panel(el, data, api) {
-    const p = () => api.palette();
+    const self = this;
     el.innerHTML = `
-      <p class="inview"><b class="lv-total"></b> trees in view · <b class="lv-kinds"></b> species</p>
+      <label class="field hood-field"><span>Neighbourhood</span>
+        <div class="hood-row">
+          <input class="hood" list="hood-list" placeholder="All of New York, or type a name">
+          <button class="hood-clear" title="Back to all of New York">×</button>
+        </div>
+        <datalist id="hood-list">${data.hoods.map(f => `<option value="${f.properties.name}, ${f.properties.borough}">`).join('')}</datalist>
+      </label>
+      <h2 class="sp-title">Species</h2>
+      <p class="inview"><b class="lv-total"></b> trees <span class="lv-where">in view</span> · <b class="lv-kinds"></b> species</p>
       <div class="chips">
         <button data-act="all">All</button><button data-act="none">None</button><button data-act="top">Top ${TOP}</button>
       </div>
       <input class="find" type="search" placeholder="Find a species">
       <ul class="species"></ul>`;
-    const list = el.querySelector('.species'), find = el.querySelector('.find');
+    const list = el.querySelector('.species'), find = el.querySelector('.find'), hood = el.querySelector('.hood');
+    const labels = data.hoods.map(f => `${f.properties.name}, ${f.properties.borough}`);
     let counts = null;
 
+    const recount = () => { counts = self.counts(data, data.bounds); render(); };
     const changed = () => { data.version++; api.changed(); render(); };
     el.querySelector('[data-act=all]').onclick = () => { data.on.fill(1); changed(); };
     el.querySelector('[data-act=none]').onclick = () => { data.on.fill(0); changed(); };
     el.querySelector('[data-act=top]').onclick = () => { data.on.fill(0); data.on.fill(1, 0, TOP); changed(); };
     find.oninput = () => render();
+    hood.onchange = () => { const k = labels.indexOf(hood.value); if (k >= 0) api.selectHood(k); };
+    el.querySelector('.hood-clear').onclick = () => api.selectHood(null);
 
     function render() {
-      counts = counts ?? this.counts(data, data.bounds);
+      counts ??= self.counts(data, data.bounds);
+      hood.value = data.hood === null ? '' : labels[data.hood];
+      el.querySelector('.lv-where').textContent = data.hood === null ? 'in view' : `in ${self.hoodName(data)}`;
       const q = find.value.trim().toLowerCase();
       const rows = [];
       counts.c.forEach((v, s) => {
@@ -189,16 +280,15 @@ export default {
       list.replaceChildren(...rows.slice(0, 200).map(s => {
         const li = document.createElement('li');
         li.className = data.on[s] ? '' : 'off';
-        li.innerHTML = `<button class="sp" title="Switch on or off"><span class="dot" style="--c:${this.colour(s, p())}"></span><span class="name">${cap(data.meta.species[s])}</span><span class="n">${fmt(counts.c[s])}</span></button><button class="solo" title="Only this species">Only</button>`;
+        li.innerHTML = `<button class="sp" title="Switch on or off"><span class="dot" style="--c:${self.colour(s, api.palette())}"></span><span class="name">${cap(data.meta.species[s])}</span><span class="n">${fmt(counts.c[s])}</span></button><button class="solo" title="Only this species">Only</button>`;
         li.querySelector('.sp').onclick = () => { data.on[s] = data.on[s] ? 0 : 1; changed(); };
         li.querySelector('.solo').onclick = () => { data.on.fill(0); data.on[s] = 1; changed(); };
         return li;
       }));
     }
-    const self = this;
-    render = render.bind(self);
-    api.onView(() => { counts = self.counts(data, data.bounds); render(); });
-    api.onPalette(() => render());
+    api.onView(recount);
+    api.onPalette(render);
+    api.onHood(recount);
     render();
   },
 };

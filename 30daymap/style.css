@@ -143,3 +143,11 @@ button.primary { background: var(--ink); color: var(--bg); border-color: var(--i
 .tree-tip i { opacity: .7; }
 .tree-tip span { opacity: .7; font-size: 12px; }
 .tree-tip b, .tree-tip i, .tree-tip span { display: block; }
+
+/* Neighbourhood picker */
+#legend { display: flex; flex-direction: column; gap: 0; }
+.hood-field { margin-bottom: 22px; }
+.hood-row { display: flex; gap: 6px; }
+.hood { flex: 1; min-width: 0; font: 500 14px var(--font); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.hood-clear { padding: 0 14px; font-size: 16px; line-height: 1; }
+.sp-title { margin-bottom: 8px; }

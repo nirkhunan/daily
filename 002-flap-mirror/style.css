@@ -32,6 +32,10 @@ body {
 .backdrop video, .backdrop img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .backdrop.mirrored video { transform: scaleX(-1); }
 
+/* On the camera, everything is set in white. */
+body.live { --ink: #FFFFFF; --soft: rgba(255, 255, 255, 0.6); }
+body.live select option { color: #111111; }
+
 button, select { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 
 /* Top: picker, name, meter */

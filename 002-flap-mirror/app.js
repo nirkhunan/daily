@@ -36,7 +36,7 @@ let prevLum = null;
 
 const $ = id => document.getElementById(id);
 const ui = {
-  start: $('start'), startNote: $('startNote'), state: $('state'), progress: $('progress'),
+  start: $('start'), startNote: $('startNote'), state: $('state'), count: $('count'), progress: $('progress'),
   sound: $('sound'), record: $('record'),
 };
 
@@ -120,7 +120,9 @@ function update(now) {
   if (flips) clack(flips);
 
   const done = locked === tiles.length && !tiles.some(t => t.start >= 0);
-  ui.progress.style.width = `${(locked / tiles.length) * 100}%`;
+  const found = Math.round((locked / tiles.length) * 100);
+  ui.progress.style.left = `${found}%`;
+  ui.count.textContent = `${found}%`;
   ui.state.textContent = !source ? 'Waiting'
     : done ? 'Found you'
     : moving ? 'Moving'
@@ -360,10 +362,7 @@ ui.sound.onclick = () => {
   ui.sound.textContent = soundOn ? 'Sound on' : 'Sound off';
 };
 ui.record.onclick = record;
-document.querySelectorAll('#density button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#density button').forEach(o => o.classList.toggle('on', o === b));
-  build(+b.dataset.cols);
-});
+$('density').onchange = e => build(+e.target.value);
 addEventListener('keydown', e => {
   if (e.code === 'Space' && e.target === document.body) {
     e.preventDefault();

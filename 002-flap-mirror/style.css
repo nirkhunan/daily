@@ -1,42 +1,92 @@
+/* One colour, one rule weight, two faces: Helvetica Neue for the name,
+   a mono for everything you touch. The yellow is airport wayfinding yellow,
+   softened. */
 :root {
-  --bg: #F6F5F2;
-  --surface: #FFFFFF;
-  --ink: #141414;
-  --muted: #6B6A66;
-  --line: #E2E0DA;
-  --board: #0E0E0E;
-  --font: "Instrument Sans", system-ui, sans-serif;
-  --serif: "Instrument Serif", Georgia, serif;
+  --bg: #F4F5B4;
+  --ink: #111111;
+  --soft: rgba(17, 17, 17, 0.55);
+  --board: #0B0B0B;
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 
 * { box-sizing: border-box; margin: 0; }
 [hidden] { display: none !important; }
 
+html, body { height: 100%; }
 body {
   background: var(--bg);
   color: var(--ink);
-  font: 14px/1.45 var(--font);
+  font: 15px/1.4 var(--mono);
+  letter-spacing: 0.04em;
   -webkit-font-smoothing: antialiased;
-}
-
-button { font: inherit; color: inherit; cursor: pointer; }
-
-.app {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto 1fr auto auto;
   min-height: 100vh;
+  padding: 40px 40px 24px;
+  gap: 28px;
 }
 
-/* The board is 16:9, like an airport board and the clip it records. */
+button, select { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+/* Top: picker, name, meter */
+.top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 32px;
+}
+.pick { justify-self: start; position: relative; width: min(100%, 320px); }
+.pick select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 6px 28px 6px 0;
+}
+.pick::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border: solid var(--ink);
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+h1 {
+  font: 500 clamp(44px, 6vw, 88px)/1 var(--sans);
+  letter-spacing: -0.035em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.meter { justify-self: end; width: min(100%, 320px); }
+.meter-row { display: flex; justify-content: space-between; }
+.meter-line { position: relative; height: 1px; background: var(--ink); margin-top: 12px; }
+.meter-line i {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+}
+
+/* Middle: the board, as large as the room allows */
 .stage {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  min-height: 0;
 }
 .board {
   position: relative;
-  width: min(calc(100vw - 320px - 64px), calc((100vh - 64px) * 16 / 9));
+  width: min(100%, calc((100vh - 300px) * 16 / 9));
   aspect-ratio: 16 / 9;
   background: var(--board);
 }
@@ -50,64 +100,50 @@ button { font: inherit; color: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 14px;
-  color: #E9E7E2;
-}
-.start .link { color: #A9A69F; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.start .note { color: #A9A69F; max-width: 260px; text-align: center; min-height: 1.45em; }
-
-.primary {
-  border: 0;
-  border-radius: 999px;
-  background: var(--ink);
   color: var(--bg);
+}
+.start button {
+  border: 1px solid var(--bg);
   padding: 12px 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   font-weight: 500;
 }
-.start .primary { background: #F6F5F2; color: #141414; }
+.start button:hover { background: var(--bg); color: var(--board); }
+.start .link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; opacity: 0.7; }
+.start .note { opacity: 0.7; max-width: 300px; text-align: center; min-height: 1.4em; }
 
-/* Panel */
-.panel {
-  border-left: 1px solid var(--line);
-  padding: 32px 28px;
+/* Below: the three things you can do */
+.actions {
   display: flex;
-  flex-direction: column;
-  gap: 22px;
+  justify-content: center;
+  gap: 48px;
 }
-.back { color: var(--muted); text-decoration: none; font-size: 13px; }
-.back::before { content: "← "; }
-.kicker { font-size: 11px; font-weight: 600; letter-spacing: .14em; color: var(--muted); margin-bottom: -18px; }
-h1 { font: 52px/1 var(--serif); font-weight: 400; }
-.lede { color: var(--muted); }
-
-.status { display: flex; flex-direction: column; gap: 8px; font-weight: 500; }
-.bar { height: 2px; background: var(--line); }
-.bar i { display: block; height: 100%; width: 0; background: var(--ink); }
-
-.group { display: flex; flex-direction: column; gap: 8px; }
-.group.row { flex-direction: row; gap: 8px; }
-.label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-
-.seg { display: flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
-.seg button { flex: 1; border: 0; background: none; border-radius: 999px; padding: 7px 0; color: var(--muted); }
-.seg button.on { background: var(--ink); color: var(--bg); }
-
-.group.row button {
-  flex: 1;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: 999px;
-  padding: 9px 0;
+.actions button {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
 }
-#sound:not(.on) { color: var(--muted); }
-.wide { width: 100%; }
-.primary.recording { background: #C8361E; }
+.actions button:hover { border-bottom-color: var(--ink); }
+#sound:not(.on) { color: var(--soft); }
+#record.recording { color: #C8361E; border-bottom-color: currentColor; }
 
-input[type=range] { width: 100%; accent-color: var(--ink); }
-.hint { color: var(--muted); font-size: 13px; margin-top: auto; }
+.foot {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink);
+}
+.foot a { color: inherit; text-underline-offset: 3px; }
+
+.meter-row { gap: 16px; white-space: nowrap; }
 
 @media (max-width: 820px) {
-  .app { grid-template-columns: 1fr; }
-  .stage { padding: 16px; }
-  .board { height: auto; width: 100%; }
-  .panel { border-left: 0; border-top: 1px solid var(--line); padding: 24px 16px 40px; }
+  body { padding: 24px 16px; gap: 24px; grid-template-rows: auto auto auto 1fr; }
+  .top { grid-template-columns: 1fr; gap: 20px; }
+  .pick, .meter { width: 100%; }
+  .board { width: 100%; }
+  .actions { gap: 20px; font-size: 13px; }
+  .foot { align-self: end; }
 }

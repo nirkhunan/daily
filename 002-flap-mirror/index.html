@@ -6,54 +6,48 @@
   <title>Flap Mirror</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
-  <div class="app">
-    <main class="stage">
-      <div class="board">
-        <canvas id="board"></canvas>
-        <div class="start" id="start">
-          <button class="primary" id="useCamera">Start the mirror</button>
-          <label class="link">or use a photo<input type="file" id="usePhoto" accept="image/*" hidden></label>
-          <p class="note" id="startNote"></p>
-        </div>
+  <header class="top">
+    <label class="pick">
+      <select id="density" aria-label="Flap size">
+        <option value="32">Large flaps</option>
+        <option value="48" selected>Medium flaps</option>
+        <option value="72">Small flaps</option>
+      </select>
+    </label>
+
+    <h1>Flap Mirror</h1>
+
+    <div class="meter">
+      <div class="meter-row"><span id="state">Waiting</span><span id="count">0%</span></div>
+      <div class="meter-line"><i id="progress"></i></div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="board">
+      <canvas id="board"></canvas>
+      <div class="start" id="start">
+        <button id="useCamera">Start the mirror</button>
+        <label class="link">or use a photo<input type="file" id="usePhoto" accept="image/*" hidden></label>
+        <p class="note" id="startNote"></p>
       </div>
-    </main>
+    </div>
+  </main>
 
-    <aside class="panel">
-      <a class="back" href="../">Daily</a>
-      <p class="kicker">002</p>
-      <h1>Flap Mirror</h1>
-      <p class="lede">Hold still and the flaps find your face. Move and they lose it.</p>
+  <nav class="actions">
+    <button id="scramble">Scramble</button>
+    <button id="sound" class="on">Sound on</button>
+    <button id="record">Record a clip</button>
+  </nav>
 
-      <div class="status">
-        <span id="state">Waiting</span>
-        <div class="bar"><i id="progress"></i></div>
-      </div>
+  <footer class="foot">
+    Flap Mirror · <a href="../">Daily</a> 002 · Hold still and the flaps find your face. Move and they lose it. Nothing leaves your browser.
+  </footer>
 
-      <div class="group">
-        <span class="label">Flaps</span>
-        <div class="seg" id="density">
-          <button data-cols="32">Large</button>
-          <button data-cols="48" class="on">Medium</button>
-          <button data-cols="72">Small</button>
-        </div>
-      </div>
-
-      <div class="group row">
-        <button id="scramble">Scramble</button>
-        <button id="sound" class="on">Sound on</button>
-      </div>
-
-      <div class="group">
-        <button class="primary wide" id="record">Record a clip</button>
-      </div>
-
-      <p class="hint">Space scrambles. Nothing leaves your browser.</p>
-    </aside>
-  </div>
-  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>

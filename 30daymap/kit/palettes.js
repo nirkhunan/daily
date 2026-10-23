@@ -1,12 +1,11 @@
-// The series colourways: the same four-colour system as Song Fabric, so the
-// daily work reads as one brand. bg = paper/water, ink = text and base map,
-// mid = the highlight, alt = a second data colour.
+// The series colourways, all green: bg = paper and water, ink = text and base
+// map, mid = the highlight, alt = a second data colour.
 
 export const PALETTES = [
-  { name: 'Paper',  bg: '#EFEBE3', ink: '#161616', mid: '#FF5A1F', alt: '#2340FF' },
-  { name: 'Night',  bg: '#0D0F12', ink: '#E6E9EC', mid: '#C8F03C', alt: '#8B6CFF' },
-  { name: 'Clay',   bg: '#E8DCCB', ink: '#2A211C', mid: '#B4532E', alt: '#5E7A5A' },
-  { name: 'Cobalt', bg: '#E9EEF2', ink: '#0F1A3A', mid: '#2340FF', alt: '#FF8A3D' },
+  { name: 'Forest', bg: '#EEF2EA', ink: '#13261B', mid: '#2F8F46', alt: '#B5D334' },
+  { name: 'Moss',   bg: '#E2E8D6', ink: '#1E2B17', mid: '#5A7D2B', alt: '#2E6B4F' },
+  { name: 'Sage',   bg: '#E8EEE6', ink: '#24372B', mid: '#4E8A62', alt: '#C2A83E' },
+  { name: 'Night',  bg: '#0D1A12', ink: '#DCE8D7', mid: '#B6E36B', alt: '#4FB286' },
 ];
 
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));

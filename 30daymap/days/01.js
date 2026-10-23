@@ -6,10 +6,12 @@
 import { land } from '../kit/map.js';
 import { alpha } from '../kit/palettes.js';
 
-// One colour each for the 16 most common species; every other species is ink.
+// One colour each for the 16 most common species, drawn from a forest:
+// leaf greens, mosses and teals, with autumn golds and bark browns so each
+// species still stands apart. Every other species is ink.
 export const COLOURS = [
-  '#E4572E', '#2340FF', '#17A398', '#F2A541', '#8E3B9E', '#3BB273', '#E15A97', '#4C6085',
-  '#C1A13A', '#8A4F2A', '#38A3D1', '#9C3D54', '#6C8A3F', '#D97C2B', '#5E548E', '#2F7F6F',
+  '#2F8F46', '#C9A227', '#0F6E6A', '#9BCB3C', '#B5562A', '#1F4D2E', '#6FB98F', '#7A8B2B',
+  '#E0B94E', '#3E7CB1', '#8C5A3C', '#4FB286', '#D98E3B', '#5C3F2A', '#A9C47F', '#2C5E72',
 ];
 const TOP = COLOURS.length;
 const NONE = 65535;   // a tree outside every neighbourhood

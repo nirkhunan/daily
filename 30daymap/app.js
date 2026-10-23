@@ -2,7 +2,7 @@ import { frame, W, H } from './kit/frame.js';
 import { boroughs, view, clip, land, MANHATTAN_GRID } from './kit/map.js';
 import { createExplorer } from './kit/explore.js';
 import { PALETTES } from './kit/palettes.js';
-import { DAYS } from './days/index.js?v=6';
+import { DAYS } from './days/index.js?v=7';
 
 const $ = s => document.querySelector(s);
 const canvas = $('#map'), ctx = canvas.getContext('2d');
@@ -185,7 +185,7 @@ $('#export2').onclick = () => exportPNG(2);
 syncSwatches();
 setMode('explore');
 await document.fonts.ready;
-await Promise.all(['600 14px "Instrument Sans"', '400 19px "Instrument Sans"', '56px "Instrument Serif"'].map(f => document.fonts.load(f)));
+await Promise.all(['300 176px "Helvetica Neue"', '500 52px "Helvetica Neue"', '400 19px "Helvetica Neue"'].map(f => document.fonts.load(f)));
 await getDay(state.day);
 await buildOptions();
 startExplorer();

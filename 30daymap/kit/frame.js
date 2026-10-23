@@ -14,8 +14,8 @@ import { alpha } from './palettes.js';
 export const W = 1080, H = 1350;
 export const MAP = { x: 56, y: 112, w: 968, h: 900 };
 
-const SANS = '"Instrument Sans", sans-serif';
-const SERIF = '"Instrument Serif", serif';
+// The whole series is set in Helvetica Neue.
+const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 function wrap(ctx, text, maxW) {
   const words = text.split(' '), lines = [];
@@ -42,7 +42,7 @@ export function frame(ctx, w, meta, p) {
   ctx.textBaseline = 'alphabetic';
 
   // Top line.
-  ctx.font = `600 ${14 * s}px ${SANS}`;
+  ctx.font = `500 ${14 * s}px ${FONT}`;
   ctx.letterSpacing = `${2.2 * s}px`;
   ctx.textAlign = 'left';
   ctx.fillText('30 DAY MAP CHALLENGE', 56 * s, 70 * s);
@@ -58,24 +58,27 @@ export function frame(ctx, w, meta, p) {
   ctx.fillStyle = p.ink;
   ctx.textAlign = 'left';
   ctx.letterSpacing = '0px';
-  ctx.font = `${176 * s}px ${SERIF}`;
+  ctx.font = `300 ${176 * s}px ${FONT}`;
+  ctx.letterSpacing = `${-6 * s}px`;
   ctx.fillText(String(meta.day).padStart(2, '0'), 48 * s, 1206 * s);
 
   const x = 300 * s, maxW = 724;
-  ctx.font = `600 ${14 * s}px ${SANS}`;
+  ctx.font = `500 ${14 * s}px ${FONT}`;
   ctx.letterSpacing = `${2.2 * s}px`;
   ctx.fillStyle = p.mid;
   ctx.fillText(meta.theme.toUpperCase(), x, 1084 * s);
   ctx.letterSpacing = '0px';
   ctx.fillStyle = p.ink;
-  fit(ctx, meta.title, 400, SERIF, 56, maxW, s);
+  ctx.letterSpacing = `${-1 * s}px`;
+  fit(ctx, meta.title, 500, FONT, 52, maxW, s);
   ctx.fillText(meta.title, x, 1144 * s);
-  ctx.font = `400 ${19 * s}px ${SANS}`;
+  ctx.letterSpacing = '0px';
+  ctx.font = `400 ${19 * s}px ${FONT}`;
   ctx.fillStyle = alpha(p.ink, 0.8);
   wrap(ctx, meta.subtitle ?? '', maxW * s).slice(0, 3).forEach((l, i) => ctx.fillText(l, x, (1182 + i * 27) * s));
 
   // Bottom line.
-  ctx.font = `500 ${13 * s}px ${SANS}`;
+  ctx.font = `400 ${13 * s}px ${FONT}`;
   ctx.fillStyle = alpha(p.ink, 0.6);
   ctx.fillText(meta.credit ?? '', 56 * s, 1306 * s);
   ctx.textAlign = 'right';

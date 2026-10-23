@@ -1,11 +1,12 @@
 :root {
-  --bg: #F6F5F2;
-  --surface: #FFFFFF;
-  --ink: #141414;
-  --muted: #6B6A66;
-  --line: #E2E0DA;
-  --font: "Instrument Sans", system-ui, sans-serif;
-  --serif: "Instrument Serif", Georgia, serif;
+  /* All green, all Helvetica Neue. */
+  --bg: #EEF2EA;
+  --surface: #F8FAF5;
+  --ink: #13261B;
+  --accent: #2F8F46;
+  --muted: #5B6B5F;
+  --line: #D3DDCF;
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -59,7 +60,7 @@ body[data-mode=explore] .only-poster, body[data-mode=poster] .only-explore { dis
   letter-spacing: .14em; text-transform: uppercase;
   color: var(--muted);
 }
-h1 { font: 56px/1 var(--serif); margin: 6px 0 12px; }
+h1 { font: 500 52px/1 var(--font); letter-spacing: -0.02em; margin: 6px 0 12px; }
 .lede { color: var(--muted); }
 
 h2 {
@@ -91,7 +92,8 @@ button {
   cursor: pointer;
 }
 button:hover { border-color: var(--ink); }
-button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+button.primary:hover { background: var(--ink); border-color: var(--ink); }
 
 .row { display: flex; gap: 8px; }
 .row button { flex: 1; }
@@ -107,7 +109,7 @@ button.primary { background: var(--ink); color: var(--bg); border-color: var(--i
 .swatch.on { outline-color: var(--ink); }
 
 .check { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
-.check input { accent-color: var(--ink); }
+.check input { accent-color: var(--accent); }
 
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; }
@@ -118,7 +120,7 @@ button.primary { background: var(--ink); color: var(--bg); border-color: var(--i
 
 .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
 .seg button { border: 0; background: transparent; padding: 8px; }
-.seg button.on { background: var(--ink); color: var(--bg); }
+.seg button.on { background: var(--accent); color: var(--surface); }
 
 /* Species legend */
 .inview { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
@@ -139,7 +141,7 @@ button.primary { background: var(--ink); color: var(--bg); border-color: var(--i
 .species .solo:hover { color: var(--ink); }
 
 /* Tree card on hover */
-.tree-tip { background: #141414 !important; color: #F6F5F2 !important; font: 13px/1.4 "Instrument Sans", sans-serif !important; padding: 10px 12px !important; border-radius: 8px; display: flex; flex-direction: column; gap: 2px; }
+.tree-tip { background: #13261B !important; color: #EEF2EA !important; font: 13px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif !important; padding: 10px 12px !important; border-radius: 8px; display: flex; flex-direction: column; gap: 2px; }
 .tree-tip i { opacity: .7; }
 .tree-tip span { opacity: .7; font-size: 12px; }
 .tree-tip b, .tree-tip i, .tree-tip span { display: block; }

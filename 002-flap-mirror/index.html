@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flap Mirror</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <div class="app">
+    <main class="stage">
+      <div class="board">
+        <canvas id="board"></canvas>
+        <div class="start" id="start">
+          <button class="primary" id="useCamera">Start the mirror</button>
+          <label class="link">or use a photo<input type="file" id="usePhoto" accept="image/*" hidden></label>
+          <p class="note" id="startNote"></p>
+        </div>
+      </div>
+    </main>
+
+    <aside class="panel">
+      <a class="back" href="../">Daily</a>
+      <p class="kicker">002</p>
+      <h1>Flap Mirror</h1>
+      <p class="lede">Hold still and the flaps find your face. Move and they lose it.</p>
+
+      <div class="status">
+        <span id="state">Waiting</span>
+        <div class="bar"><i id="progress"></i></div>
+      </div>
+
+      <div class="group">
+        <span class="label">Flaps</span>
+        <div class="seg" id="density">
+          <button data-cols="16">Large</button>
+          <button data-cols="24" class="on">Medium</button>
+          <button data-cols="36">Small</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <span class="label">Movement it takes</span>
+        <input type="range" id="sens" min="2" max="20" step="1" value="7">
+      </div>
+
+      <div class="group row">
+        <button id="scramble">Scramble</button>
+        <button id="sound" class="on">Sound on</button>
+      </div>
+
+      <div class="group">
+        <button class="primary wide" id="record">Record a clip</button>
+      </div>
+
+      <p class="hint">Space scrambles. Nothing leaves your browser.</p>
+    </aside>
+  </div>
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>

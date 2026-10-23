@@ -27,13 +27,10 @@ body {
   gap: 28px;
 }
 
-/* Once the mirror starts, the page itself is what the camera sees, under a
-   light wash so the text stays readable. */
+/* Once the mirror starts, the page itself is what the camera sees. */
 .backdrop { position: fixed; inset: 0; z-index: -1; background: var(--bg); }
 .backdrop video, .backdrop img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .backdrop.mirrored video { transform: scaleX(-1); }
-.backdrop::after { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.3); }
-.backdrop:empty::after { display: none; }
 
 button, select { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 

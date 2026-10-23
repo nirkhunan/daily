@@ -328,6 +328,18 @@ function usePhoto(file) {
 
 function setSource(el, mirror) {
   source = el; mirrored = mirror; prevLum = olderLum = null;
+  // The same picture fills the page behind everything.
+  const back = $('backdrop');
+  back.replaceChildren();
+  back.classList.toggle('mirrored', mirror);
+  if (el instanceof HTMLVideoElement) {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.srcObject = el.srcObject;
+    back.append(v);
+    v.play();
+  } else if (el instanceof HTMLImageElement) {
+    back.append(el.cloneNode());
+  }
   ui.start.hidden = true;
   scramble(0.5, 0.5);
 }
